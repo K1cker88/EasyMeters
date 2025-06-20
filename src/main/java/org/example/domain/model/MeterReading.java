@@ -54,21 +54,4 @@ public class MeterReading {
         return electricityNight;
     }
 
-    @Override public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof MeterReading)) return false;
-        MeterReading m = (MeterReading) o;
-        return apartmentNumber == m.apartmentNumber &&
-                Double.compare(m.hotWater, hotWater) == 0 &&
-                Double.compare(m.coldWater, coldWater) == 0 &&
-                Double.compare(m.heating, heating) == 0 &&
-                Double.compare(m.electricityDay, electricityDay) == 0 &&
-                Double.compare(m.electricityNight, electricityNight) == 0 &&
-                date.equals(m.date);
-    }
-    @Override public int hashCode() {
-        return Objects.hash(date, apartmentNumber,
-                hotWater, coldWater, heating,
-                electricityDay, electricityNight);
-    }
 }

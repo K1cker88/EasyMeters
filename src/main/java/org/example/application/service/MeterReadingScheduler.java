@@ -1,6 +1,6 @@
 package org.example.application.service;
 
-import org.example.domain.application.MeterReadingRepositoryPort;
+import org.example.domain.application.MeterReadingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 public class MeterReadingScheduler {
 
     private final MonthlyReportEmailService emailService;
-    private final MeterReadingRepositoryPort meterRepo;
+    private final MeterReadingRepository meterRepo;
 
     @Autowired
-    public MeterReadingScheduler(MonthlyReportEmailService emailService, MeterReadingRepositoryPort meterRepo) {
+    public MeterReadingScheduler(MonthlyReportEmailService emailService, MeterReadingRepository meterRepo) {
         this.emailService = emailService;
         this.meterRepo = meterRepo;
     }

@@ -18,11 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class MeterReadingBot extends TelegramLongPollingBot {
-    private final RegisterAccountHolderUseCase registerUC;
-    private final SubmitMeterReadingUseCase submitUC;
-    private final UpdateMeterReadingUseCase updateUC;
-    private final AccountHolderRepositoryPort accountHolderRepository;
-    private final MeterReadingRepositoryPort meterReadingRepository;
+    private final RegisterAccountHolder registerUC;
+    private final SubmitMeterReading submitUC;
+    private final UpdateMeterReading updateUC;
+    private final AccountHolderRepository accountHolderRepository;
+    private final MeterReadingRepository meterReadingRepository;
 
     @Value("${telegram.bot.username}")
     private String botUsername;
@@ -34,11 +34,11 @@ public class MeterReadingBot extends TelegramLongPollingBot {
 
     @Autowired
     public MeterReadingBot(
-            RegisterAccountHolderUseCase registerUC,
-            SubmitMeterReadingUseCase submitUC,
-            UpdateMeterReadingUseCase updateUC,
-            AccountHolderRepositoryPort accountHolderRepository,
-            MeterReadingRepositoryPort meterReadingRepository
+            RegisterAccountHolder registerUC,
+            SubmitMeterReading submitUC,
+            UpdateMeterReading updateUC,
+            AccountHolderRepository accountHolderRepository,
+            MeterReadingRepository meterReadingRepository
     ) {
         this.registerUC            = registerUC;
         this.submitUC              = submitUC;
@@ -140,10 +140,19 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             st.step = 1;
             sendMessage(chatId, "Введите номер лицевого счёта:");
         } else {
-            registerUC.register(st.apartmentInput, txt, st.telegramUserId);
-            sendMessage(chatId, "✅ Регистрация прошла успешно.");
-            userStateMap.remove(chatId);
-            sendMainMenu(chatId);
+            // 2-й шаг — пытаемся зарегить
+            try {
+                registerUC.register(st.apartmentInput, txt, st.telegramUserId);
+                sendMessage(chatId, "✅ Регистрация прошла успешно.");
+            } catch (IllegalStateException ex) {
+                sendMessage(chatId, ex.getMessage());
+            } catch (Exception ex) {
+                sendMessage(chatId, "❌ Не удалось завершить регистрацию. Попробуйте позже.");
+                ex.printStackTrace();
+            } finally {
+                userStateMap.remove(chatId);
+                sendMainMenu(chatId);
+            }
         }
     }
 
@@ -153,7 +162,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                 case 0 -> {
                     st.apt = Integer.parseInt(txt);
                     if (!accountHolderRepository.existsByUserIdAndApartmentNumber(st.telegramUserId, st.apt)) {
-                        sendMessage(chatId, "❌ Не зарегистрированы на эту квартиру.");
+                        sendMessage(chatId, "❌ Вы не зарегистрированы за этой квартирой.");
                         userStateMap.remove(chatId);
                         sendMainMenu(chatId);
                         return;
@@ -168,7 +177,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                     }
                     // всё ок, спрашиваем горячую воду
                     st.step = 1;
-                    sendMessage(chatId, "Горячая вода (тек.):");
+                    sendMessage(chatId, "Горячая вода:");
                 }
 
                 case 1 -> {

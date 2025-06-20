@@ -1,6 +1,6 @@
 package org.example.domain.application;
 
 
-public interface UpdateMeterReadingUseCase {
+public interface UpdateMeterReading {
     void update(int apartmentNumber, String meterType, double newValue);
 }

@@ -1,7 +1,7 @@
 package application.service;
 
 import org.example.application.service.UpdateMeterReadingService;
-import org.example.domain.application.MeterReadingRepositoryPort;
+import org.example.domain.application.MeterReadingRepository;
 import org.example.domain.model.MeterReading;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class UpdateMeterReadingServiceTest {
 
-    static class FakeRepo implements MeterReadingRepositoryPort {
+    static class FakeRepo implements MeterReadingRepository {
         int calledApartment = -1;
         String calledField = null;
         double calledValue = -1;

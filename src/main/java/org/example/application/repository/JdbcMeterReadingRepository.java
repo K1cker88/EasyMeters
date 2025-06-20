@@ -1,6 +1,6 @@
 package org.example.application.repository;
 
-import org.example.domain.application.MeterReadingRepositoryPort;
+import org.example.domain.application.MeterReadingRepository;
 import org.example.domain.model.MeterReading;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.dao.DataAccessException;
@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 @Repository
-public class JdbcMeterReadingRepository implements MeterReadingRepositoryPort {
+public class JdbcMeterReadingRepository implements MeterReadingRepository {
     private final JdbcTemplate jdbcTemplate;
 
     public JdbcMeterReadingRepository(JdbcTemplate jdbcTemplate) {

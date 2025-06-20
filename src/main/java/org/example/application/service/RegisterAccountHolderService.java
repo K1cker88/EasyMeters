@@ -1,39 +1,29 @@
 package org.example.application.service;
 
-import org.example.domain.application.AccountHolderRepositoryPort;
-import org.example.domain.application.RegisterAccountHolderUseCase;
+import org.example.domain.application.AccountHolderRepository;
+import org.example.domain.application.RegisterAccountHolder;
 import org.example.domain.business.AccountHolderValidator;
 import org.example.domain.model.AccountHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
-public class RegisterAccountHolderService
-        implements RegisterAccountHolderUseCase {
-
-    private final AccountHolderRepositoryPort repo;
-    private final AccountHolderValidator validator = new AccountHolderValidator();
-
-    public RegisterAccountHolderService(AccountHolderRepositoryPort repo) {
-        this.repo = repo;
-    }
-
-    @Override
-    @Transactional
-    public AccountHolder register(String aptInput, String accInput, long telegramUserId) {
-        validator.validate(aptInput, accInput);
-        int apt = Integer.parseInt(aptInput);
-        int acc = Integer.parseInt(accInput);
-        if (repo.existsByUserIdAndApartmentNumber(telegramUserId, apt)) {
-            throw new IllegalStateException("Вы уже зарегистрированы для этой квартиры.");
+    @Service
+    public class RegisterAccountHolderService implements RegisterAccountHolder {
+        private final AccountHolderRepository repo;
+        private final AccountHolderValidator validator = new AccountHolderValidator();
+        public RegisterAccountHolderService(AccountHolderRepository repo) {
+            this.repo = repo;
         }
-        AccountHolder h = new AccountHolder(apt, acc, telegramUserId);
-        try {
+
+        @Override
+        public AccountHolder register(String aptInput, String accInput, long telegramUserId) {
+            validator.validate(aptInput, accInput);
+            int apt = Integer.parseInt(aptInput);
+            int acc = Integer.parseInt(accInput);
+            if (repo.existsByUserIdAndApartmentNumber(telegramUserId, apt)) {
+                throw new IllegalStateException("Вы уже зарегистрированы.");
+            }
+            AccountHolder h = new AccountHolder(apt, acc, telegramUserId);
             repo.save(h);
-        } catch (IllegalStateException ex) {
-            // тут мы перехватываем дубликат из репозитория
-            throw new IllegalStateException(ex.getMessage());
+            return h;
         }
-        return h;
     }
-}

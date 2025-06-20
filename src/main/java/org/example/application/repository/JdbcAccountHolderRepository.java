@@ -1,6 +1,6 @@
 package org.example.application.repository;
 
-import org.example.domain.application.AccountHolderRepositoryPort;
+import org.example.domain.application.AccountHolderRepository;
 import org.example.domain.model.AccountHolder;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcAccountHolderRepository
-        implements AccountHolderRepositoryPort {
+        implements AccountHolderRepository {
 
     private final JdbcTemplate jdbc;
 
@@ -28,7 +28,7 @@ public class JdbcAccountHolderRepository
         catch (DuplicateKeyException ex) {
             // пользователь с таким userId или apartmentNumber уже есть
             throw new IllegalStateException(
-                    "Вы уже зарегистрированы или такой пользователь уже существует", ex);
+                    "Вы уже зарегистрированы", ex);
         }
         catch (DataAccessException ex) {
             System.err.println("❌ Ошибка сохранения: " + ex.getMessage());

@@ -1,7 +1,7 @@
 package org.example.application.service;
 
-import org.example.domain.application.MeterReadingRepositoryPort;
-import org.example.domain.application.SubmitMeterReadingUseCase;
+import org.example.domain.application.MeterReadingRepository;
+import org.example.domain.application.SubmitMeterReading;
 import org.example.domain.business.MeterReadingValidator;
 import org.example.domain.model.MeterReading;
 import org.springframework.stereotype.Service;
@@ -11,12 +11,12 @@ import java.time.LocalDate;
 
 @Service
 public class SubmitMeterReadingService
-        implements SubmitMeterReadingUseCase {
+        implements SubmitMeterReading {
 
-    private final MeterReadingRepositoryPort repo;
+    private final MeterReadingRepository repo;
     private final MeterReadingValidator validator = new MeterReadingValidator();
 
-    public SubmitMeterReadingService(MeterReadingRepositoryPort repo) {
+    public SubmitMeterReadingService(MeterReadingRepository repo) {
         this.repo = repo;
     }
 

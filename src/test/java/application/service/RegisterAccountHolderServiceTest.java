@@ -1,7 +1,7 @@
 package application.service;
 
 import org.example.application.service.RegisterAccountHolderService;
-import org.example.domain.application.AccountHolderRepositoryPort;
+import org.example.domain.application.AccountHolderRepository;
 import org.example.domain.model.AccountHolder;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,7 +10,7 @@ import java.util.*;
 public class RegisterAccountHolderServiceTest {
     public class RegisterAccountHolderServiceSimpleTest {
 
-        static class InMemoryRepo implements AccountHolderRepositoryPort {
+        static class InMemoryRepo implements AccountHolderRepository {
             List<AccountHolder> holders = new ArrayList<>();
 
             @Override

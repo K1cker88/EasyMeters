@@ -4,7 +4,7 @@ import org.example.domain.model.MeterReading;
 
 import java.util.Optional;
 
-public interface MeterReadingRepositoryPort {
+public interface MeterReadingRepository {
     void save(MeterReading reading);
     Optional<MeterReading> findPrevious(int apartmentNumber);
     void updateField(int apartmentNumber, String field, double value);

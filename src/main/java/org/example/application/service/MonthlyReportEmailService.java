@@ -51,7 +51,7 @@ public class MonthlyReportEmailService {
             helper.addAttachment("meter_report.xlsx",
                     new FileSystemResource(file));
             mailSender.send(msg);
-            System.out.println("📧 Отчет отправлен");
+            System.out.println("Отчет отправлен");
         } catch (Exception ex) {
             System.err.println("Ошибка отправки email: " + ex.getMessage());
         }

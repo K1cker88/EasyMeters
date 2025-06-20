@@ -1,7 +1,7 @@
 package application.service;
 
 import org.example.application.service.SubmitMeterReadingService;
-import org.example.domain.application.MeterReadingRepositoryPort;
+import org.example.domain.application.MeterReadingRepository;
 import org.example.domain.model.MeterReading;
 import org.junit.jupiter.api.Test;
 
@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SubmitMeterReadingServiceTest {
 
     // Фейковая реализация репозитория
-    static class InMemoryMeterRepo implements MeterReadingRepositoryPort {
+    static class InMemoryMeterRepo implements MeterReadingRepository {
         MeterReading saved;
         Optional<MeterReading> prevReading = Optional.empty();
 

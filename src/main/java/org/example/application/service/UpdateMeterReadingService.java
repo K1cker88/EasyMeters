@@ -1,17 +1,17 @@
 package org.example.application.service;
 
-import org.example.domain.application.MeterReadingRepositoryPort;
-import org.example.domain.application.UpdateMeterReadingUseCase;
+import org.example.domain.application.MeterReadingRepository;
+import org.example.domain.application.UpdateMeterReading;
 import org.springframework.stereotype.Service;
 
 
 @Service
 public class UpdateMeterReadingService
-        implements UpdateMeterReadingUseCase {
+        implements UpdateMeterReading {
 
-    private final MeterReadingRepositoryPort repo;
+    private final MeterReadingRepository repo;
 
-    public UpdateMeterReadingService(MeterReadingRepositoryPort repo) {
+    public UpdateMeterReadingService(MeterReadingRepository repo) {
         this.repo = repo;
     }
 

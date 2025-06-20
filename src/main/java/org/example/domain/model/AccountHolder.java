@@ -25,18 +25,4 @@ public class AccountHolder {
         return userId;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AccountHolder)) return false;
-        AccountHolder that = (AccountHolder) o;
-        return apartmentNumber == that.apartmentNumber &&
-                accountNumber == that.accountNumber &&
-                userId == that.userId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(apartmentNumber, accountNumber, userId);
-    }
 }
