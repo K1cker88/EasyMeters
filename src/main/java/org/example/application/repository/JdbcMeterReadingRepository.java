@@ -103,26 +103,4 @@ public class JdbcMeterReadingRepository implements MeterReadingRepository {
         Integer cnt = jdbcTemplate.queryForObject(sql, Integer.class, userId, apt);
         return cnt != null && cnt > 0;
     }
-
-    public void updatePrevReadings() {
-        String updateSql =
-                "UPDATE meters m " +
-                        "   SET prev_hotWater       = curr_hotWater, " +
-                        "       prev_coldWater      = curr_coldWater, " +
-                        "       prev_heating        = curr_heating, " +
-                        "       prev_electricityDay = curr_electricityDay, " +
-                        "       prev_electricityNight = curr_electricityNight, " +
-                        "       curr_hotWater       = 0, " +
-                        "       curr_coldWater      = 0, " +
-                        "       curr_heating        = 0, " +
-                        "       curr_electricityDay = 0, " +
-                        "       curr_electricityNight = 0";
-
-        try {
-            jdbcTemplate.update(updateSql);
-            System.out.println("✅ Все записи обновлены успешно");
-        } catch (DataAccessException e) {
-            System.err.println("❌ Ошибка при обновлении: " + e.getMessage());
-        }
-    }
 }
