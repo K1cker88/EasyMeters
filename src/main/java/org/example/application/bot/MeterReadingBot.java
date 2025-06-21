@@ -192,7 +192,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                 case 2 -> {
                     st.cw = Double.parseDouble(txt);
                     st.step = 3;
-                    sendMessage(chatId, "Теплоэнергия:");
+                    sendMessage(chatId, "Отопление");
                 }
                 case 3 -> {
                     st.ht = Double.parseDouble(txt);
@@ -256,7 +256,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                     st.previousReading = switch (st.readingType) {
                         case "🔥горячая вода" -> st.hotWater;
                         case "💧холодная вода" -> st.coldWater;
-                        case "♨теплоэнергия" -> st.heating;
+                        case "\uD83C\uDF21отопление" -> st.heating;
                         case "💡электричество день" -> st.electricityDay;
                         case "🔌электричество ночь" -> st.electricityNight;
                         default -> 0.0;
@@ -277,7 +277,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                     switch (st.readingType) {
                         case "🔥горячая вода"        -> meterReadingRepository.updateHotWater(st.apartmentNumber, v);
                         case "💧холодная вода"       -> meterReadingRepository.updateColdWater(st.apartmentNumber, v);
-                        case "♨теплоэнергия"         -> meterReadingRepository.updateHeating(st.apartmentNumber, v);
+                        case "\uD83C\uDF21отопление"         -> meterReadingRepository.updateHeating(st.apartmentNumber, v);
                         case "💡электричество день"  -> meterReadingRepository.updateElectricityDay(st.apartmentNumber, v);
                         case "🔌электричество ночь" -> meterReadingRepository.updateElectricityNight(st.apartmentNumber, v);
                     }
@@ -324,7 +324,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         for (String label : List.of(
                 "🔥горячая вода",
                 "💧холодная вода",
-                "♨теплоэнергия",
+                "\uD83C\uDF21отопление",
                 "💡электричество день",
                 "🔌электричество ночь"
         )) {

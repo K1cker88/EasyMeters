@@ -55,7 +55,7 @@ public class ExcelExportService {
             style.setBorderRight(BorderStyle.THIN);
 
             String[] headers = {
-                    "№ квартиры","№ лицевого счета","Холодная вода","Горячая вода","Теплоэнергия","Электричество день","Электричество ночь"
+                    "№ квартиры","№ лицевого счета","Холодная вода","Горячая вода","Отопление","Электричество день","Электричество ночь"
             };
             Row header = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
