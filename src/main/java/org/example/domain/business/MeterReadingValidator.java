@@ -1,7 +1,6 @@
 package org.example.domain.business;
 
 import org.example.domain.model.MeterReading;
-
 import java.time.LocalDate;
 
 public class MeterReadingValidator {

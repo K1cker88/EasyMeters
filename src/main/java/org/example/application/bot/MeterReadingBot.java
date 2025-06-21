@@ -2,7 +2,6 @@ package org.example.application.bot;
 
 import org.example.domain.application.*;
 import org.example.domain.business.MeterReadingValidator;
-import org.example.domain.model.MeterReading;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
