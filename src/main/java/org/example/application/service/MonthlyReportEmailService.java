@@ -30,7 +30,6 @@ public class MonthlyReportEmailService {
         this.recipientEmail     = recipientEmail;
     }
 
-    @Scheduled(cron = "0 0 10 23 * ?")
     public void sendMonthlyReport() {
         String filePath = generateReportFileName();
         try {

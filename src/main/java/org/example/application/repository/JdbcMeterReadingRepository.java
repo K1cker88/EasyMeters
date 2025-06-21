@@ -161,8 +161,30 @@ public class JdbcMeterReadingRepository implements MeterReadingRepositoryPort {
         Integer cnt = jdbcTemplate.queryForObject(sql, Integer.class, userId);
         return cnt != null && cnt > 0;
     }
-    @Scheduled(cron = "0 0 0 1 * ?")
-    public void scheduledUpdatePrevReadings() {
+
+    public void updatePrevReadings() {
+        String updateSql =
+                "UPDATE meters m " +
+                        "   SET prev_hotWater       = curr_hotWater, " +
+                        "       prev_coldWater      = curr_coldWater, " +
+                        "       prev_heating        = curr_heating, " +
+                        "       prev_electricityDay = curr_electricityDay, " +
+                        "       prev_electricityNight = curr_electricityNight, " +
+                        "       curr_hotWater       = 0, " +
+                        "       curr_coldWater      = 0, " +
+                        "       curr_heating        = 0, " +
+                        "       curr_electricityDay = 0, " +
+                        "       curr_electricityNight = 0";
+
+        try {
+            jdbcTemplate.update(updateSql);
+            System.out.println("✅ Все записи обновлены успешно");
+        } catch (DataAccessException e) {
+            System.err.println("❌ Ошибка при обновлении: " + e.getMessage());
+        }
+    }
+
+public void scheduledUpdatePrevReadings() {
         resetMonthly();
     }
 }
