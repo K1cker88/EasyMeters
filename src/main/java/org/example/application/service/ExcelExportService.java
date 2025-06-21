@@ -17,6 +17,7 @@ import java.util.Map;
 public class ExcelExportService {
 
     private final JdbcTemplate jdbc;
+    private final String address = "Ленина 66";
 
     @Autowired
     public ExcelExportService(JdbcTemplate jdbc) {
@@ -46,7 +47,7 @@ public class ExcelExportService {
         }
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Отчет");
+            Sheet sheet = workbook.createSheet(address);
             CellStyle style = workbook.createCellStyle();
             style.setBorderBottom(BorderStyle.THIN);
             style.setBorderTop(BorderStyle.THIN);
@@ -54,7 +55,7 @@ public class ExcelExportService {
             style.setBorderRight(BorderStyle.THIN);
 
             String[] headers = {
-                    "№ кв.","№ сч.","Хвода","Гвода","Тепло","Эдень","Эночь"
+                    "№ квартиры","№ лицевого счета","Холодная вода","Горячая вода","Теплоэнергия","Электричество день","Электричество ночь"
             };
             Row header = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {

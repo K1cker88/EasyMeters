@@ -1,6 +1,7 @@
 package org.example.application.bot;
 
 import org.example.domain.application.*;
+import org.example.domain.business.MeterReadingValidator;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -23,6 +24,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
     private final UpdateMeterReading updateUC;
     private final AccountHolderRepository accountHolderRepository;
     private final MeterReadingRepository meterReadingRepository;
+    private final MeterReadingValidator dateValidator = new MeterReadingValidator();
 
     @Value("${telegram.bot.username}")
     private String botUsername;
@@ -40,11 +42,11 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             AccountHolderRepository accountHolderRepository,
             MeterReadingRepository meterReadingRepository
     ) {
-        this.registerUC            = registerUC;
-        this.submitUC              = submitUC;
-        this.updateUC              = updateUC;
+        this.registerUC = registerUC;
+        this.submitUC = submitUC;
+        this.updateUC = updateUC;
         this.accountHolderRepository = accountHolderRepository;
-        this.meterReadingRepository  = meterReadingRepository;
+        this.meterReadingRepository = meterReadingRepository;
     }
 
     @Override
@@ -82,7 +84,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
 
         if ("submit_readings_disabled".equals(data)) {
             sendMessage(chatId, "Вы уже передали показания за этот месяц. " +
-                    "Изменить их можно через «Изменить показания».");
+                    "Изменить их можно через кнопку «Изменить показания».");
             return;
         }
 
@@ -109,19 +111,24 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         }
     }
 
-    // Сохраняем telegramUserId и для submit, и для update
-    private void startProcess(Long chatId, long telegramUserId,
-                              String proc, String prompt)
+    private void startProcess(Long chatId,
+                              long telegramUserId,
+                              String proc,
+                              String prompt)
     {
-        if (LocalDate.now().getDayOfMonth() > 22) {
-            sendMessage(chatId, "Передача показаний возможна только до 22-го числа.");
+        try {
+            dateValidator.validateDate(LocalDate.now());
+        } catch (IllegalStateException e) {
+            sendMessage(chatId, e.getMessage());
             return;
         }
+
         UserState st = new UserState();
         st.proc = proc;
         st.step = 0;
         st.telegramUserId = telegramUserId;
         userStateMap.put(chatId, st);
+
         sendMessage(chatId, prompt);
     }
 
@@ -140,7 +147,6 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             st.step = 1;
             sendMessage(chatId, "Введите номер лицевого счёта:");
         } else {
-            // 2-й шаг — пытаемся зарегить
             try {
                 registerUC.register(st.apartmentInput, txt, st.telegramUserId);
                 sendMessage(chatId, "✅ Регистрация прошла успешно.");
@@ -175,11 +181,9 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                         sendMainMenu(chatId);
                         return;
                     }
-                    // всё ок, спрашиваем горячую воду
                     st.step = 1;
                     sendMessage(chatId, "Горячая вода:");
                 }
-
                 case 1 -> {
                     st.hw = Double.parseDouble(txt);
                     st.step = 2;
@@ -217,19 +221,16 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         try {
             switch (st.step) {
                 case 0 -> {
-                    // получаем номер квартиры
                     st.apartmentNumber = Integer.parseInt(txt);
-                    // проверяем регистрацию
                     if (!accountHolderRepository
                             .existsByUserIdAndApartmentNumber(st.telegramUserId, st.apartmentNumber))
                     {
                         sendMessage(chatId,
-                                "❌ Вы не зарегистрированы на эту квартиру. Пройдите регистрацию.");
+                                "❌ Вы не зарегистрированы за данной квартирой. Пройдите регистрацию.");
                         userStateMap.remove(chatId);
                         sendMainMenu(chatId);
                         return;
                     }
-                    // подгружаем предыдущие показания
                     meterReadingRepository
                             .createMeterReadingFromPrev(st.apartmentNumber)
                             .ifPresentOrElse(prev -> {
@@ -273,7 +274,6 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                                         st.previousReading + ")");
                         return;
                     }
-                    // обновляем конкретное поле
                     switch (st.readingType) {
                         case "🔥горячая вода"        -> meterReadingRepository.updateHotWater(st.apartmentNumber, v);
                         case "💧холодная вода"       -> meterReadingRepository.updateColdWater(st.apartmentNumber, v);

@@ -56,7 +56,6 @@ public class JdbcMeterReadingRepository implements MeterReadingRepository {
                         double prevDay   = rs.getDouble("prev_electricityDay");
                         double prevNight = rs.getDouble("prev_electricityNight");
 
-                        // Передаем сначала дату, затем apartmentNumber, потом все счётчики
                         return MeterReading.of(LocalDate.now(), apartmentNumber, prevHot, prevCold, prevHeat, prevDay, prevNight);
                     }
             );
@@ -100,7 +99,6 @@ public class JdbcMeterReadingRepository implements MeterReadingRepository {
                 double ht = rs.getDouble("prev_heating");
                 double ed = rs.getDouble("prev_electricityDay");
                 double en = rs.getDouble("prev_electricityNight");
-                // используем наш фабричный метод
                 return MeterReading.of(LocalDate.now(), apartmentNumber, hw, cw, ht, ed, en);
             });
             return Optional.ofNullable(mr);

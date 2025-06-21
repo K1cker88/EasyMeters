@@ -26,10 +26,6 @@ public class MeterReading {
         return new MeterReading(date, apt, hw, cw, ht, ed, en);
     }
 
-    public LocalDate getDate() {
-        return date;
-    }
-
     public int getApartmentNumber() {
         return apartmentNumber;
     }

@@ -26,7 +26,6 @@ public class JdbcAccountHolderRepository
             System.out.println("✅ Данные успешно сохранены!");
         }
         catch (DuplicateKeyException ex) {
-            // пользователь с таким userId или apartmentNumber уже есть
             throw new IllegalStateException(
                     "Вы уже зарегистрированы", ex);
         }

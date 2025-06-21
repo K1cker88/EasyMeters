@@ -12,8 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class SubmitMeterReadingServiceTest {
 
-    // Фейковая реализация репозитория
-    static class InMemoryMeterRepo implements MeterReadingRepository {
+        static class InMemoryMeterRepo implements MeterReadingRepository {
         MeterReading saved;
         Optional<MeterReading> prevReading = Optional.empty();
 
