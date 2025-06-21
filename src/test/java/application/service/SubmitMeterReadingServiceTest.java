@@ -3,18 +3,17 @@ package application.service;
 import org.example.application.service.SubmitMeterReadingService;
 import org.example.domain.application.MeterReadingRepository;
 import org.example.domain.model.MeterReading;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.time.LocalDate;
-import java.util.*;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SubmitMeterReadingServiceTest {
+class SubmitMeterReadingServiceTest {
 
-        static class InMemoryMeterRepo implements MeterReadingRepository {
+    static class InMemoryMeterRepo implements MeterReadingRepository {
         MeterReading saved;
-        Optional<MeterReading> prevReading = Optional.empty();
+        Optional<MeterReading> prev = Optional.empty();
 
         @Override
         public void save(MeterReading reading) {
@@ -23,67 +22,58 @@ public class SubmitMeterReadingServiceTest {
 
         @Override
         public Optional<MeterReading> findPrevious(int apartmentNumber) {
-            return prevReading;
-        }
-
-        @Override public void updateField(int apartmentNumber, String field, double value) {}
-        @Override public void resetMonthly() {}
-
-        @Override
-        public Optional<MeterReading> createMeterReadingFromPrev(int apartmentNumber) {
-            return Optional.empty();
+            return prev;
         }
 
         @Override
-        public void updateHotWater(int apartmentNumber, double value) {
-
+        public void updateField(int apartmentNumber, String field, double value) {
+            // not used in this test
         }
 
         @Override
-        public void updateColdWater(int apartmentNumber, double value) {
-
+        public void resetMonthly() {
+            // not used
         }
 
         @Override
-        public void updateHeating(int apartmentNumber, double value) {
-
-        }
-
-        @Override
-        public void updateElectricityDay(int apartmentNumber, double value) {
-
-        }
-
-        @Override
-        public void updateElectricityNight(int apartmentNumber, double value) {
-
-        }
-
-        @Override
-        public boolean hasUnsubmittedReadings(long userId) {
+        public boolean hasUnsubmittedReadings(long userId, int apartmentNumber) {
             return false;
         }
 
-        // Для удобства можно добавить сеттер
-        public void setPrevious(MeterReading reading) {
-            this.prevReading = Optional.of(reading);
+        void setPrevious(MeterReading reading) {
+            this.prev = Optional.of(reading);
         }
+    }
+
+    private InMemoryMeterRepo repo;
+    private SubmitMeterReadingService service;
+
+    @BeforeEach
+    void setUp() {
+        repo = new InMemoryMeterRepo();
+        service = new SubmitMeterReadingService(repo);
     }
 
     @Test
     void savesMeterReadingSuccessfully() {
-        InMemoryMeterRepo repo = new InMemoryMeterRepo();
-        SubmitMeterReadingService service = new SubmitMeterReadingService(repo);
+        int apt      = 101;
+        double hot   = 1.1;
+        double cold  = 2.2;
+        double heat  = 3.3;
+        double day   = 4.4;
+        double night = 5.5;
 
-        LocalDate today = LocalDate.now();
-        int apt = 101;
 
-        MeterReading result = service.submit(apt, 1.1, 2.2, 3.3, 4.4, 5.5);
+        MeterReading result = service.submit(apt, hot, cold, heat, day, night);
 
         assertNotNull(result);
-        assertEquals(apt, result.getApartmentNumber());
-        assertEquals(1.1, result.getHotWater());
-        assertEquals(5.5, result.getElectricityNight());
-        assertEquals(result, repo.saved, "Сохранённое показание должно совпадать с возвращённым");
+        assertEquals(apt,     result.getApartmentNumber());
+        assertEquals(hot,     result.getHotWater());
+        assertEquals(cold,    result.getColdWater());
+        assertEquals(heat,    result.getHeating());
+        assertEquals(day,     result.getElectricityDay());
+        assertEquals(night,   result.getElectricityNight());
+        assertSame(result, repo.saved,
+                "Сохранённый объект должен совпадать с возвращённым");
     }
 }

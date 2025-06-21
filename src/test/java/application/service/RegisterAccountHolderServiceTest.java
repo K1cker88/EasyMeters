@@ -5,6 +5,7 @@ import org.example.domain.application.AccountHolderRepository;
 import org.example.domain.model.AccountHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RegisterAccountHolderServiceTest {
@@ -20,29 +21,29 @@ class RegisterAccountHolderServiceTest {
 
     @Test
     void shouldRegisterNewAccountHolder() {
-        long userId = 123L;
-        String aptInput = "10";
-        String accInput = "20";
+        long userId   = 123L;
+        String apt    = "10";
+        String acc    = "43010010010";
 
-        AccountHolder result = service.register(aptInput, accInput, userId);
+        AccountHolder result = service.register(apt, acc, userId);
 
         assertNotNull(result);
-        assertEquals(10, result.getApartmentNumber());
-        assertEquals(20, result.getAccountNumber());
+        assertEquals(10,   result.getApartmentNumber());
+        assertEquals(43010010010L, result.getAccountNumber());
         assertEquals(userId, result.getUserId());
-
         assertTrue(repo.saved.contains(result));
     }
 
     @Test
     void shouldThrowWhenAlreadyRegistered() {
-        long userId = 42L;
-
-        repo.preRegister(userId, 5);
+        long   userId = 42L;
+        int    apt    = 5;
+        String acc    = "43010010005";
+        repo.preRegister(userId, apt);
 
         IllegalStateException ex = assertThrows(
                 IllegalStateException.class,
-                () -> service.register("5", "100", userId)
+                () -> service.register(String.valueOf(apt), acc, userId)
         );
         assertEquals("Вы уже зарегистрированы.", ex.getMessage());
     }
@@ -50,23 +51,23 @@ class RegisterAccountHolderServiceTest {
     @Test
     void shouldThrowOnInvalidNumberFormat() {
         long userId = 1L;
-        assertThrows(IllegalArgumentException.class,
-                () -> service.register("abc", "100", userId),
-                "Некорректный формат номера квартиры");
-        assertThrows(IllegalArgumentException.class,
-                () -> service.register("10", "zzz", userId),
-                "Некорректный формат номера лицевого счета");
+
+        IllegalArgumentException ex1 = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.register("abc", "43010010001", userId)
+        );
+        assertTrue(ex1.getMessage().toLowerCase().contains("формат"));
+
+        IllegalArgumentException ex2 = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.register("10", "zzz", userId)
+        );
+        assertTrue(ex2.getMessage().toLowerCase().contains("формат"));
     }
 
-    /**
-     * Простейшая in-memory реализация репозитория
-     * без использования Mockito.
-     */
     static class InMemoryAccountHolderRepository implements AccountHolderRepository {
-        // хранит сохранённые объекты
-        final java.util.List<AccountHolder> saved = new java.util.ArrayList<>();
-        // отмеченные пары (userId, apartment)
-        private final java.util.Set<String> registered = new java.util.HashSet<>();
+        final List<AccountHolder> saved      = new ArrayList<>();
+        final Set<String>         registered = new HashSet<>();
 
         @Override
         public void save(AccountHolder h) {
@@ -79,7 +80,6 @@ class RegisterAccountHolderServiceTest {
             return registered.contains(key(telegramUserId, apt));
         }
 
-        // позволяет тесту заранее зарегистрировать пользователя
         void preRegister(long userId, int apt) {
             registered.add(key(userId, apt));
         }

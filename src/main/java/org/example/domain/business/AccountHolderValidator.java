@@ -15,34 +15,6 @@ public class AccountHolderValidator {
                     "Указанный лицевой счет не соотвествует введенному номеру квартиры");
         }
     }
-    private int parseInt(String in, int min, int max, String field) {
-        try {
-            int v = Integer.parseInt(in);
-            if (v < min || v > max) {
-                throw new IllegalArgumentException(
-                        "Недопустимое значение " + field + ": " + v);
-            }
-            return v;
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(
-                    "Некорректный формат " + field + ": " + in);
-        }
-    }
-
-    private long parseLong(String in, long min, long max, String field) {
-        try {
-            long v = Long.parseLong(in);
-            if (v < min || v > max) {
-                throw new IllegalArgumentException(
-                        "Недопустимое значение " + field + ": " + v);
-            }
-            return v;
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(
-                    "Некорректный формат " + field + ": " + in);
-        }
-    }
-
     private long parse(String in, long min, long max, String field) {
         try {
             long v = Long.parseLong(in);

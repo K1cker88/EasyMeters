@@ -2,6 +2,7 @@ package org.example.application.bot;
 
 import org.example.domain.application.*;
 import org.example.domain.business.MeterReadingValidator;
+import org.example.domain.model.MeterReading;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -79,12 +80,6 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         Long chatId = cq.getMessage().getChatId();
         long tgId = cq.getFrom().getId();
         String data = cq.getData();
-
-        if ("submit_readings_disabled".equals(data)) {
-            sendMessage(chatId,
-                    "Вы уже передали показания за этот месяц. Изменить их можно через кнопку «Изменить показания».");
-            return;
-        }
 
         switch (data) {
             case "register"         -> startRegistration(chatId, tgId);
@@ -198,8 +193,12 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                 }
                 case 5 -> {
                     st.en = Double.parseDouble(txt);
-                    submitUC.submit(st.apt, st.hw, st.cw, st.ht, st.ed, st.en);
-                    sendMessage(chatId, "✅ Показания сохранены.");
+                    try {
+                        submitUC.submit(st.apt, st.hw, st.cw, st.ht, st.ed, st.en);
+                        sendMessage(chatId, "✅ Показания сохранены.");
+                    } catch (IllegalArgumentException | IllegalStateException ex) {
+                        sendMessage(chatId, "❌ " + ex.getMessage());
+                    }
                     userStateMap.remove(chatId);
                     sendMainMenu(chatId);
                 }
@@ -221,7 +220,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                         sendMainMenu(chatId);
                         return;
                     }
-                    meterReadingRepo.createMeterReadingFromPrev(st.apartmentNumber)
+                    meterReadingRepo.findPrevious(st.apartmentNumber)
                             .ifPresentOrElse(prev -> {
                                 st.hotWater        = prev.getHotWater();
                                 st.coldWater       = prev.getColdWater();
@@ -257,22 +256,22 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                 }
                 case 2 -> {
                     double v = Double.parseDouble(txt);
-                    if (v < st.previousReading) {
-                        sendMessage(chatId,
-                                "Новое значение не может быть меньше предыдущего (" +
-                                        st.previousReading + ")");
-                        return;
-                    }
                     String column = switch (st.readingType) {
-                        case "🔥горячая вода"        -> "curr_hotWater";
-                        case "💧холодная вода"       -> "curr_coldWater";
+                        case "🔥горячая вода"      -> "curr_hotWater";
+                        case "💧холодная вода"     -> "curr_coldWater";
                         case "\uD83C\uDF21отопление"-> "curr_heating";
-                        case "💡электричество день"  -> "curr_electricityDay";
-                        case "🔌электричество ночь"  -> "curr_electricityNight";
-                        default                      -> throw new IllegalStateException("Неизвестный тип: " + st.readingType);
+                        case "💡электричество день"-> "curr_electricityDay";
+                        case "🔌электричество ночь"-> "curr_electricityNight";
+                        default -> throw new IllegalStateException("Неизвестный тип: " + st.readingType);
                     };
-                    updateUC.update(st.apartmentNumber, column, v);
-                    sendMessage(chatId, "✅ Показание «" + st.readingType + "» обновлено.");
+
+                    try {
+                        updateUC.update(st.apartmentNumber, column, v);
+                        sendMessage(chatId, "✅ Показание «" + st.readingType + "» обновлено.");
+                    } catch (IllegalArgumentException | IllegalStateException ex) {
+                        sendMessage(chatId, "❌ " + ex.getMessage());
+                    }
+
                     st.step = 1;
                     sendUpdateMeterTypeKeyboard(chatId);
                 }

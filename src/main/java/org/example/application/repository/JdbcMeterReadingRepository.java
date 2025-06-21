@@ -84,46 +84,6 @@ public class JdbcMeterReadingRepository implements MeterReadingRepository {
         jdbcTemplate.update(updateSql);
     }
 
-
-    @Override
-    public Optional<MeterReading> createMeterReadingFromPrev(int apartmentNumber) {
-        String sql = """
-            SELECT prev_hotWater, prev_coldWater, prev_heating,
-                   prev_electricityDay, prev_electricityNight
-            FROM meters WHERE apartmentNumber = ?
-        """;
-        try {
-            MeterReading mr = jdbcTemplate.queryForObject(sql, new Object[]{apartmentNumber}, (rs, rowNum) -> {
-                double hw = rs.getDouble("prev_hotWater");
-                double cw = rs.getDouble("prev_coldWater");
-                double ht = rs.getDouble("prev_heating");
-                double ed = rs.getDouble("prev_electricityDay");
-                double en = rs.getDouble("prev_electricityNight");
-                return MeterReading.of(LocalDate.now(), apartmentNumber, hw, cw, ht, ed, en);
-            });
-            return Optional.ofNullable(mr);
-        } catch (EmptyResultDataAccessException ex) {
-            System.out.println("Запись по apartmentNumber " + apartmentNumber + " не найдена.");
-            return Optional.empty();
-        }
-    }
-
-    @Override public void updateHotWater(int apt, double v) {
-        jdbcTemplate.update("UPDATE meters SET curr_hotWater = ? WHERE apartmentNumber = ?", v, apt);
-    }
-    @Override public void updateColdWater(int apt, double v) {
-        jdbcTemplate.update("UPDATE meters SET curr_coldWater = ? WHERE apartmentNumber = ?", v, apt);
-    }
-    @Override public void updateHeating(int apt, double v) {
-        jdbcTemplate.update("UPDATE meters SET curr_heating = ? WHERE apartmentNumber = ?", v, apt);
-    }
-    @Override public void updateElectricityDay(int apt, double v) {
-        jdbcTemplate.update("UPDATE meters SET curr_electricityDay = ? WHERE apartmentNumber = ?", v, apt);
-    }
-    @Override public void updateElectricityNight(int apt, double v) {
-        jdbcTemplate.update("UPDATE meters SET curr_electricityNight = ? WHERE apartmentNumber = ?", v, apt);
-    }
-
     @Override
     public boolean hasUnsubmittedReadings(long userId, int apt) {
         String sql = """

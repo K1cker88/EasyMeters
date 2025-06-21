@@ -9,33 +9,34 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UpdateMeterReadingServiceTest {
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+class UpdateMeterReadingServiceTest {
 
     static class FakeRepo implements MeterReadingRepository {
         int calledApartment = -1;
-        String calledField = null;
-        double calledValue = -1;
+        String calledField  = null;
+        double calledValue  = -1;
+        Optional<MeterReading> prev = Optional.empty();
 
         @Override
         public void updateField(int apartmentNumber, String field, double value) {
             this.calledApartment = apartmentNumber;
-            this.calledField = field;
-            this.calledValue = value;
+            this.calledField     = field;
+            this.calledValue     = value;
         }
 
-        // неиспользуемые методы — можно оставить пустыми
         @Override public void save(MeterReading r) {}
-        @Override public Optional<MeterReading> findPrevious(int apartmentNumber) { return Optional.empty(); }
+        @Override public Optional<MeterReading> findPrevious(int apartmentNumber) {
+            return prev;
+        }
         @Override public void resetMonthly() {}
-        @Override public Optional<MeterReading> createMeterReadingFromPrev(int apartmentNumber) { return Optional.empty(); }
-        @Override public void updateHotWater(int apartmentNumber, double value) {}
-        @Override public void updateColdWater(int apartmentNumber, double value) {}
-        @Override public void updateHeating(int apartmentNumber, double value) {}
-        @Override public void updateElectricityDay(int apartmentNumber, double value) {}
-        @Override public void updateElectricityNight(int apartmentNumber, double value) {}
-
-        @Override
-        public boolean hasUnsubmittedReadings(long userId) {
+        @Override public boolean hasUnsubmittedReadings(long userId, int apartmentNumber) {
             return false;
         }
     }
@@ -43,12 +44,16 @@ public class UpdateMeterReadingServiceTest {
     @Test
     void shouldDelegateUpdateToRepo() {
         FakeRepo repo = new FakeRepo();
+        repo.prev = Optional.of(
+                MeterReading.of(LocalDate.now(), 105, 0, 0, 0, 0, 0)
+        );
+
         UpdateMeterReadingService service = new UpdateMeterReadingService(repo);
 
         service.update(105, "curr_hotWater", 12.5);
 
         assertEquals(105, repo.calledApartment);
         assertEquals("curr_hotWater", repo.calledField);
-        assertEquals(12.5, repo.calledValue);
+        assertEquals(12.5, repo.calledValue, 0.0001);
     }
 }
