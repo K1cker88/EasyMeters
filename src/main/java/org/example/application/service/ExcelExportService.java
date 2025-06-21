@@ -68,7 +68,7 @@ public class ExcelExportService {
             for (var rowData : rows) {
                 Row row = sheet.createRow(r++);
                 row.createCell(0).setCellValue((Integer) rowData.get("apartmentNumber"));
-                row.createCell(1).setCellValue((Integer) rowData.get("accountNumber"));
+                row.createCell(1).setCellValue(((Number) rowData.get("accountNumber")).longValue());
                 row.createCell(2).setCellValue((Double)  rowData.get("curr_coldWater"));
                 row.createCell(3).setCellValue((Double)  rowData.get("curr_hotWater"));
                 row.createCell(4).setCellValue((Double)  rowData.get("curr_heating"));

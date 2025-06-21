@@ -15,5 +15,5 @@ public interface MeterReadingRepository {
     void updateHeating(int apartmentNumber, double value);
     void updateElectricityDay(int apartmentNumber, double value);
     void updateElectricityNight(int apartmentNumber, double value);
-    boolean hasUnsubmittedReadings(long userId);
+    boolean hasUnsubmittedReadings(long userId, int apartmentNumber);
 }

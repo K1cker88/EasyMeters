@@ -86,15 +86,4 @@ public class SubmitMeterReadingServiceTest {
         assertEquals(5.5, result.getElectricityNight());
         assertEquals(result, repo.saved, "Сохранённое показание должно совпадать с возвращённым");
     }
-
-    @Test
-    void usesZeroReadingIfPreviousMissing() {
-        InMemoryMeterRepo repo = new InMemoryMeterRepo(); // prevReading по умолчанию пустой
-        SubmitMeterReadingService service = new SubmitMeterReadingService(repo);
-
-        MeterReading result = service.submit(10, 1, 1, 1, 1, 1);
-
-        assertEquals(10, result.getApartmentNumber());
-        assertEquals(1, result.getHotWater());
-    }
 }

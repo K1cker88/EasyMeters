@@ -1,13 +1,11 @@
 package org.example.domain.model;
 
-import java.util.Objects;
-
 public class AccountHolder {
     private final int apartmentNumber;
-    private final int accountNumber;
+    private final long accountNumber;
     private final long userId;
 
-    public AccountHolder(int apartmentNumber, int accountNumber, long userId) {
+    public AccountHolder(int apartmentNumber, long accountNumber, long userId) {
         this.apartmentNumber = apartmentNumber;
         this.accountNumber = accountNumber;
         this.userId = userId;
@@ -17,7 +15,7 @@ public class AccountHolder {
         return apartmentNumber;
     }
 
-    public int getAccountNumber() {
+    public long getAccountNumber() {
         return accountNumber;
     }
 

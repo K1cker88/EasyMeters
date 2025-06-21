@@ -125,20 +125,22 @@ public class JdbcMeterReadingRepository implements MeterReadingRepository {
     }
 
     @Override
-    public boolean hasUnsubmittedReadings(long userId) {
-        var sql = """
-            SELECT COUNT(*) 
-              FROM users u
-              JOIN meters m
-                ON u.apartmentNumber = m.apartmentNumber
-             WHERE u.Id = ?
-               AND (m.curr_hotWater      <> 0
-                 OR m.curr_coldWater     <> 0
-                 OR m.curr_heating       <> 0
-                 OR m.curr_electricityDay <> 0
-                 OR m.curr_electricityNight <> 0)
-            """;
-        Integer cnt = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+    public boolean hasUnsubmittedReadings(long userId, int apt) {
+        String sql = """
+      SELECT COUNT(*)
+        FROM users u
+        JOIN meters m ON u.apartmentNumber = m.apartmentNumber
+       WHERE u.Id = ?
+         AND u.apartmentNumber = ?
+         AND (
+              m.curr_hotWater     <> 0 OR
+              m.curr_coldWater    <> 0 OR
+              m.curr_heating      <> 0 OR
+              m.curr_electricityDay   <> 0 OR
+              m.curr_electricityNight <> 0
+         )
+      """;
+        Integer cnt = jdbcTemplate.queryForObject(sql, Integer.class, userId, apt);
         return cnt != null && cnt > 0;
     }
 
@@ -162,9 +164,5 @@ public class JdbcMeterReadingRepository implements MeterReadingRepository {
         } catch (DataAccessException e) {
             System.err.println("❌ Ошибка при обновлении: " + e.getMessage());
         }
-    }
-
-public void scheduledUpdatePrevReadings() {
-        resetMonthly();
     }
 }

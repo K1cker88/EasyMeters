@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
         @Override
         public AccountHolder register(String aptInput, String accInput, long telegramUserId) {
             validator.validate(aptInput, accInput);
-            int apt = Integer.parseInt(aptInput);
-            int acc = Integer.parseInt(accInput);
+            int apt   = (int) Long.parseLong(aptInput);
+            long acc  = Long.parseLong(accInput);
             if (repo.existsByUserIdAndApartmentNumber(telegramUserId, apt)) {
                 throw new IllegalStateException("Вы уже зарегистрированы.");
             }

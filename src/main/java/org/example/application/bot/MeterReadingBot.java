@@ -20,11 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class MeterReadingBot extends TelegramLongPollingBot {
     private final RegisterAccountHolder registerUC;
-    private final SubmitMeterReading submitUC;
-    private final UpdateMeterReading updateUC;
-    private final AccountHolderRepository accountHolderRepository;
-    private final MeterReadingRepository meterReadingRepository;
-    private final MeterReadingValidator dateValidator = new MeterReadingValidator();
+    private final SubmitMeterReading    submitUC;
+    private final UpdateMeterReading    updateUC;
+    private final AccountHolderRepository accountHolderRepo;
+    private final MeterReadingRepository  meterReadingRepo;
+    private final MeterReadingValidator   dateValidator = new MeterReadingValidator();
 
     @Value("${telegram.bot.username}")
     private String botUsername;
@@ -35,18 +35,16 @@ public class MeterReadingBot extends TelegramLongPollingBot {
     private final Map<Long, UserState> userStateMap = new ConcurrentHashMap<>();
 
     @Autowired
-    public MeterReadingBot(
-            RegisterAccountHolder registerUC,
-            SubmitMeterReading submitUC,
-            UpdateMeterReading updateUC,
-            AccountHolderRepository accountHolderRepository,
-            MeterReadingRepository meterReadingRepository
-    ) {
-        this.registerUC = registerUC;
-        this.submitUC = submitUC;
-        this.updateUC = updateUC;
-        this.accountHolderRepository = accountHolderRepository;
-        this.meterReadingRepository = meterReadingRepository;
+    public MeterReadingBot(RegisterAccountHolder       registerUC,
+                           SubmitMeterReading          submitUC,
+                           UpdateMeterReading          updateUC,
+                           AccountHolderRepository     accountHolderRepo,
+                           MeterReadingRepository      meterReadingRepo) {
+        this.registerUC        = registerUC;
+        this.submitUC          = submitUC;
+        this.updateUC          = updateUC;
+        this.accountHolderRepo = accountHolderRepo;
+        this.meterReadingRepo  = meterReadingRepo;
     }
 
     @Override
@@ -71,41 +69,32 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             } else {
                 sendMessage(chatId, "Нажмите /start");
             }
-
-        } else if (upd.hasCallbackQuery()) {
+        }
+        else if (upd.hasCallbackQuery()) {
             handleCallback(upd.getCallbackQuery());
         }
     }
 
     private void handleCallback(CallbackQuery cq) {
         Long chatId = cq.getMessage().getChatId();
-        long tgId    = cq.getFrom().getId();
-        String data  = cq.getData();
+        long tgId = cq.getFrom().getId();
+        String data = cq.getData();
 
         if ("submit_readings_disabled".equals(data)) {
-            sendMessage(chatId, "Вы уже передали показания за этот месяц. " +
-                    "Изменить их можно через кнопку «Изменить показания».");
+            sendMessage(chatId,
+                    "Вы уже передали показания за этот месяц. Изменить их можно через кнопку «Изменить показания».");
             return;
         }
 
         switch (data) {
-            case "register" ->
-                    startRegistration(chatId, tgId);
-
-            case "submit_readings" ->
-                    startProcess(chatId, tgId, "submit", "Введите номер квартиры:");
-
-            case "update_readings" ->
-                    startProcess(chatId, tgId, "update", "Введите номер квартиры:");
-
+            case "register"         -> startRegistration(chatId, tgId);
+            case "submit_readings"  -> startProcess(chatId, tgId, "submit", "Введите номер квартиры:");
+            case "update_readings"  -> startProcess(chatId, tgId, "update", "Введите номер квартиры:");
             default -> {
                 if (userStateMap.containsKey(chatId)) {
                     UserState st = userStateMap.get(chatId);
-                    if ("update".equals(st.proc)) {
-                        handleUpdate(st, chatId, data);
-                    } else {
-                        onReg(st, chatId, data);
-                    }
+                    if ("update".equals(st.proc)) handleUpdate(st, chatId, data);
+                    else                          onReg(st, chatId, data);
                 }
             }
         }
@@ -114,8 +103,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
     private void startProcess(Long chatId,
                               long telegramUserId,
                               String proc,
-                              String prompt)
-    {
+                              String prompt) {
         try {
             dateValidator.validateDate(LocalDate.now());
         } catch (IllegalStateException e) {
@@ -124,19 +112,18 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         }
 
         UserState st = new UserState();
-        st.proc = proc;
-        st.step = 0;
-        st.telegramUserId = telegramUserId;
+        st.proc          = proc;
+        st.step          = 0;
+        st.telegramUserId= telegramUserId;
         userStateMap.put(chatId, st);
-
         sendMessage(chatId, prompt);
     }
 
     private void startRegistration(Long chatId, long telegramUserId) {
         UserState st = new UserState();
-        st.proc = "reg";
-        st.step = 0;
-        st.telegramUserId = telegramUserId;
+        st.proc          = "reg";
+        st.step          = 0;
+        st.telegramUserId= telegramUserId;
         userStateMap.put(chatId, st);
         sendMessage(chatId, "Введите номер квартиры для регистрации:");
     }
@@ -148,10 +135,12 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             sendMessage(chatId, "Введите номер лицевого счёта:");
         } else {
             try {
-                registerUC.register(st.apartmentInput, txt, st.telegramUserId);
-                sendMessage(chatId, "✅ Регистрация прошла успешно.");
-            } catch (IllegalStateException ex) {
-                sendMessage(chatId, ex.getMessage());
+               registerUC.register(st.apartmentInput, txt, st.telegramUserId);
+               sendMessage(chatId, "✅ Регистрация прошла успешно.");
+               }
+           catch (IllegalArgumentException | IllegalStateException ex) {
+
+                sendMessage(chatId, "❌ " + ex.getMessage());
             } catch (Exception ex) {
                 sendMessage(chatId, "❌ Не удалось завершить регистрацию. Попробуйте позже.");
                 ex.printStackTrace();
@@ -167,20 +156,23 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             switch (st.step) {
                 case 0 -> {
                     st.apt = Integer.parseInt(txt);
-                    if (!accountHolderRepository.existsByUserIdAndApartmentNumber(st.telegramUserId, st.apt)) {
+
+                    if (!accountHolderRepo.existsByUserIdAndApartmentNumber(st.telegramUserId, st.apt)) {
                         sendMessage(chatId, "❌ Вы не зарегистрированы за этой квартирой.");
                         userStateMap.remove(chatId);
                         sendMainMenu(chatId);
                         return;
                     }
-                    if (meterReadingRepository.hasUnsubmittedReadings(st.telegramUserId)) {
+
+                    if (meterReadingRepo.hasUnsubmittedReadings(st.telegramUserId, st.apt)) {
                         sendMessage(chatId,
-                                "ℹ️ Вы уже передали показания за этот месяц.\n" +
-                                        "Изменить можно через «Изменить показания».");
+                                "Вы уже передали показания за эту квартиру в этом месяце.\n" +
+                                        "Изменить их можно через кнопку «Изменить показания».");
                         userStateMap.remove(chatId);
                         sendMainMenu(chatId);
                         return;
                     }
+
                     st.step = 1;
                     sendMessage(chatId, "Горячая вода:");
                 }
@@ -192,7 +184,7 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                 case 2 -> {
                     st.cw = Double.parseDouble(txt);
                     st.step = 3;
-                    sendMessage(chatId, "Отопление");
+                    sendMessage(chatId, "Отопление:");
                 }
                 case 3 -> {
                     st.ht = Double.parseDouble(txt);
@@ -222,23 +214,20 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             switch (st.step) {
                 case 0 -> {
                     st.apartmentNumber = Integer.parseInt(txt);
-                    if (!accountHolderRepository
-                            .existsByUserIdAndApartmentNumber(st.telegramUserId, st.apartmentNumber))
-                    {
+                    if (!accountHolderRepo.existsByUserIdAndApartmentNumber(st.telegramUserId, st.apartmentNumber)) {
                         sendMessage(chatId,
                                 "❌ Вы не зарегистрированы за данной квартирой. Пройдите регистрацию.");
                         userStateMap.remove(chatId);
                         sendMainMenu(chatId);
                         return;
                     }
-                    meterReadingRepository
-                            .createMeterReadingFromPrev(st.apartmentNumber)
+                    meterReadingRepo.createMeterReadingFromPrev(st.apartmentNumber)
                             .ifPresentOrElse(prev -> {
-                                st.hotWater       = prev.getHotWater();
-                                st.coldWater      = prev.getColdWater();
-                                st.heating        = prev.getHeating();
-                                st.electricityDay   = prev.getElectricityDay();
-                                st.electricityNight = prev.getElectricityNight();
+                                st.hotWater        = prev.getHotWater();
+                                st.coldWater       = prev.getColdWater();
+                                st.heating         = prev.getHeating();
+                                st.electricityDay  = prev.getElectricityDay();
+                                st.electricityNight= prev.getElectricityNight();
                             }, () -> {
                                 st.hotWater = st.coldWater = st.heating
                                         = st.electricityDay = st.electricityNight = 0.0;
@@ -254,12 +243,12 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                     }
                     st.readingType = txt.substring("update_meter:".length());
                     st.previousReading = switch (st.readingType) {
-                        case "🔥горячая вода" -> st.hotWater;
-                        case "💧холодная вода" -> st.coldWater;
-                        case "\uD83C\uDF21отопление" -> st.heating;
-                        case "💡электричество день" -> st.electricityDay;
-                        case "🔌электричество ночь" -> st.electricityNight;
-                        default -> 0.0;
+                        case "🔥горячая вода"        -> st.hotWater;
+                        case "💧холодная вода"       -> st.coldWater;
+                        case "\uD83C\uDF21отопление"-> st.heating;
+                        case "💡электричество день"  -> st.electricityDay;
+                        case "🔌электричество ночь"  -> st.electricityNight;
+                        default                      -> 0.0;
                     };
                     st.step = 2;
                     sendMessage(chatId,
@@ -274,13 +263,15 @@ public class MeterReadingBot extends TelegramLongPollingBot {
                                         st.previousReading + ")");
                         return;
                     }
-                    switch (st.readingType) {
-                        case "🔥горячая вода"        -> meterReadingRepository.updateHotWater(st.apartmentNumber, v);
-                        case "💧холодная вода"       -> meterReadingRepository.updateColdWater(st.apartmentNumber, v);
-                        case "\uD83C\uDF21отопление"         -> meterReadingRepository.updateHeating(st.apartmentNumber, v);
-                        case "💡электричество день"  -> meterReadingRepository.updateElectricityDay(st.apartmentNumber, v);
-                        case "🔌электричество ночь" -> meterReadingRepository.updateElectricityNight(st.apartmentNumber, v);
-                    }
+                    String column = switch (st.readingType) {
+                        case "🔥горячая вода"        -> "curr_hotWater";
+                        case "💧холодная вода"       -> "curr_coldWater";
+                        case "\uD83C\uDF21отопление"-> "curr_heating";
+                        case "💡электричество день"  -> "curr_electricityDay";
+                        case "🔌электричество ночь"  -> "curr_electricityNight";
+                        default                      -> throw new IllegalStateException("Неизвестный тип: " + st.readingType);
+                    };
+                    updateUC.update(st.apartmentNumber, column, v);
                     sendMessage(chatId, "✅ Показание «" + st.readingType + "» обновлено.");
                     st.step = 1;
                     sendUpdateMeterTypeKeyboard(chatId);
@@ -292,22 +283,11 @@ public class MeterReadingBot extends TelegramLongPollingBot {
     }
 
     private void sendMainMenu(Long chatId) {
-        long userId = chatId; // в приватном чате ChatId == TelegramUserId
-        boolean already = meterReadingRepository.hasUnsubmittedReadings(userId);
-
         InlineKeyboardMarkup kb = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> line1 = List.of(button("📝 Регистрация", "register"));
-        InlineKeyboardButton submitBtn = already
-                ? button("🏠 Передать показания", "submit_readings_disabled")
-                : button("🏠 Передать показания", "submit_readings");
-        InlineKeyboardButton updateBtn = button("✏️ Изменить показания", "update_readings");
-
         kb.setKeyboard(List.of(
-                List.of(button("📝 Регистрация", "register")),
-                List.of(
-                        button("🏠 Передать показания", "submit_readings"),
-                        button("✏️ Изменить показания",  "update_readings")
-                )
+                List.of(button("📝 Регистрация",   "register")),
+                List.of(button("🏠 Передать показания", "submit_readings"),
+                        button("✏️ Изменить показания",  "update_readings"))
         ));
 
         executeSafely(SendMessage.builder()
@@ -375,15 +355,15 @@ public class MeterReadingBot extends TelegramLongPollingBot {
 
     private static class UserState {
         String proc;
-        int    step;
-        long   telegramUserId;
-        // для регистрации
+        int step;
+        long telegramUserId;
+        // registration
         String apartmentInput;
-        // для submit
-        int    apt;
+        // submit
+        int apt;
         double hw, cw, ht, ed, en;
-        // для update
-        int    apartmentNumber;
+        // update
+        int apartmentNumber;
         String readingType;
         double hotWater, coldWater, heating, electricityDay, electricityNight;
         double previousReading;

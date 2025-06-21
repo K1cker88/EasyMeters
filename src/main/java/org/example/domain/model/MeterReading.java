@@ -1,7 +1,6 @@
 package org.example.domain.model;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 public class MeterReading {
     private final LocalDate date;
