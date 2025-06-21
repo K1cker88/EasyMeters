@@ -9,4 +9,10 @@ public interface MeterReadingRepositoryPort {
     Optional<MeterReading> findPrevious(int apartmentNumber);
     void updateField(int apartmentNumber, String field, double value);
     void resetMonthly();
+    Optional<MeterReading> createMeterReadingFromPrev(int apartmentNumber);
+    void updateHotWater(int apartmentNumber, double value);
+    void updateColdWater(int apartmentNumber, double value);
+    void updateHeating(int apartmentNumber, double value);
+    void updateElectricityDay(int apartmentNumber, double value);
+    void updateElectricityNight(int apartmentNumber, double value);
 }

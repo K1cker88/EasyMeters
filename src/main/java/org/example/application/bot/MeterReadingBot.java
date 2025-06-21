@@ -1,8 +1,6 @@
 package org.example.application.bot;
 
-import org.example.domain.application.RegisterAccountHolderUseCase;
-import org.example.domain.application.SubmitMeterReadingUseCase;
-import org.example.domain.application.UpdateMeterReadingUseCase;
+import org.example.domain.application.*;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -20,38 +18,58 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class MeterReadingBot extends TelegramLongPollingBot {
-
     private final RegisterAccountHolderUseCase registerUC;
-    private final SubmitMeterReadingUseCase  submitUC;
-    private final UpdateMeterReadingUseCase  updateUC;
+    private final SubmitMeterReadingUseCase submitUC;
+    private final UpdateMeterReadingUseCase updateUC;
+    private final AccountHolderRepositoryPort accountHolderRepository;
+    private final MeterReadingRepositoryPort meterReadingRepository;
 
-    @Value("${telegram.bot.username}") private String botUsername;
-    @Value("${telegram.bot.token}")     private String botToken;
+    @Value("${telegram.bot.username}")
+    private String botUsername;
 
-    private final Map<Long, UserState> userState = new ConcurrentHashMap<>();
+    @Value("${telegram.bot.token}")
+    private String botToken;
+
+    private final Map<Long, UserState> userStateMap = new ConcurrentHashMap<>();
 
     @Autowired
-    public MeterReadingBot(RegisterAccountHolderUseCase registerUC,
-                           SubmitMeterReadingUseCase  submitUC,
-                           UpdateMeterReadingUseCase  updateUC) {
-        this.registerUC = registerUC;
-        this.submitUC   = submitUC;
-        this.updateUC   = updateUC;
+    public MeterReadingBot(
+            RegisterAccountHolderUseCase registerUC,
+            SubmitMeterReadingUseCase submitUC,
+            UpdateMeterReadingUseCase updateUC,
+            AccountHolderRepositoryPort accountHolderRepository,
+            MeterReadingRepositoryPort meterReadingRepository
+    ) {
+        this.registerUC            = registerUC;
+        this.submitUC              = submitUC;
+        this.updateUC              = updateUC;
+        this.accountHolderRepository = accountHolderRepository;
+        this.meterReadingRepository  = meterReadingRepository;
     }
 
     @Override
     public void onUpdateReceived(Update upd) {
         if (upd.hasMessage() && upd.getMessage().hasText()) {
             Long chatId = upd.getMessage().getChatId();
-            String txt  = upd.getMessage().getText().trim();
+            String txt = upd.getMessage().getText().trim();
+
             if (txt.startsWith("/start")) {
                 sendMainMenu(chatId);
-                userState.remove(chatId);
-            } else if (userState.containsKey(chatId)) {
-                handleText(userState.get(chatId), chatId, txt);
+                userStateMap.remove(chatId);
+                return;
+            }
+
+            if (userStateMap.containsKey(chatId)) {
+                UserState st = userStateMap.get(chatId);
+                switch (st.proc) {
+                    case "reg"    -> onReg(st, chatId, txt);
+                    case "submit" -> onSubmit(st, chatId, txt);
+                    case "update" -> handleUpdate(st, chatId, txt);
+                }
             } else {
                 sendMessage(chatId, "Нажмите /start");
             }
+
         } else if (upd.hasCallbackQuery()) {
             handleCallback(upd.getCallbackQuery());
         }
@@ -59,137 +77,189 @@ public class MeterReadingBot extends TelegramLongPollingBot {
 
     private void handleCallback(CallbackQuery cq) {
         Long chatId = cq.getMessage().getChatId();
-        String data = cq.getData();
+        long tgId    = cq.getFrom().getId();
+        String data  = cq.getData();
 
         switch (data) {
             case "register" ->
-                    startRegistration(chatId, cq.getFrom().getId());
+                    startRegistration(chatId, tgId);
+
             case "submit_readings" ->
-                    startProcess(chatId, "submit", "Введите номер квартиры:");
+                    startProcess(chatId, tgId, "submit", "Введите номер квартиры:");
+
             case "update_readings" ->
-                    startProcess(chatId, "update", "Введите номер квартиры:");
+                    startProcess(chatId, tgId, "update", "Введите номер квартиры:");
+
             default -> {
-                if (userState.containsKey(chatId)) {
-                    handleText(userState.get(chatId), chatId, data);
+                if (userStateMap.containsKey(chatId)) {
+                    UserState st = userStateMap.get(chatId);
+                    if ("update".equals(st.proc)) {
+                        handleUpdate(st, chatId, data);
+                    } else {
+                        onReg(st, chatId, data);
+                    }
                 }
             }
         }
     }
 
-    private void startRegistration(Long chatId, long tgId) {
-        UserState st = new UserState();
-        st.proc = "reg"; st.step = 0; st.telegramUserId = tgId;
-        userState.put(chatId, st);
-        sendMessage(chatId, "Введите номер квартиры для регистрации:");
-    }
-
-    private void startProcess(Long chatId, String type, String prompt) {
+    // Сохраняем telegramUserId и для submit, и для update
+    private void startProcess(Long chatId, long telegramUserId,
+                              String proc, String prompt)
+    {
         if (LocalDate.now().getDayOfMonth() > 22) {
-            sendMessage(chatId, "Передача показаний возможна только до 22 числа.");
+            sendMessage(chatId, "Передача показаний возможна только до 22-го числа.");
             return;
         }
         UserState st = new UserState();
-        st.proc = type; st.step = 0;
-        userState.put(chatId, st);
+        st.proc           = proc;
+        st.step           = 0;
+        st.telegramUserId = telegramUserId;
+        userStateMap.put(chatId, st);
         sendMessage(chatId, prompt);
     }
 
-    private void handleText(UserState st, Long chatId, String txt) {
-        try {
-            switch (st.proc) {
-                case "reg"    -> onReg(st, chatId, txt);
-                case "submit" -> onSubmit(st, chatId, txt);
-                case "update" -> onUpdate(st, chatId, txt);
-            }
-        } catch (Exception ex) {
-            sendMessage(chatId, "Ошибка: " + ex.getMessage());
-            userState.remove(chatId);
-            sendMainMenu(chatId);
-        }
+    private void startRegistration(Long chatId, long telegramUserId) {
+        UserState st = new UserState();
+        st.proc           = "reg";
+        st.step           = 0;
+        st.telegramUserId = telegramUserId;
+        userStateMap.put(chatId, st);
+        sendMessage(chatId, "Введите номер квартиры для регистрации:");
     }
 
-    // — Registration flow
     private void onReg(UserState st, Long chatId, String txt) {
         if (st.step == 0) {
             st.apartmentInput = txt;
             st.step = 1;
-            sendMessage(chatId, "Введите номер лицевого счета:");
+            sendMessage(chatId, "Введите номер лицевого счёта:");
         } else {
             registerUC.register(st.apartmentInput, txt, st.telegramUserId);
-            sendMessage(chatId, "✅ Регистрация успешна.");
-            userState.remove(chatId);
+            sendMessage(chatId, "✅ Регистрация прошла успешно.");
+            userStateMap.remove(chatId);
             sendMainMenu(chatId);
         }
     }
 
-    // — Submit flow
     private void onSubmit(UserState st, Long chatId, String txt) {
-        switch (st.step) {
-            case 0 -> {
-                st.apt = Integer.parseInt(txt);
-                st.step = 1;
-                sendMessage(chatId, "Горячая вода (тек.):");
+        try {
+            switch (st.step) {
+                case 0 -> {
+                    st.apt  = Integer.parseInt(txt);
+                    st.step = 1;
+                    sendMessage(chatId, "Горячая вода (тек.):");
+                }
+                case 1 -> {
+                    st.hw   = Double.parseDouble(txt);
+                    st.step = 2;
+                    sendMessage(chatId, "Холодная вода:");
+                }
+                case 2 -> {
+                    st.cw   = Double.parseDouble(txt);
+                    st.step = 3;
+                    sendMessage(chatId, "Теплоэнергия:");
+                }
+                case 3 -> {
+                    st.ht   = Double.parseDouble(txt);
+                    st.step = 4;
+                    sendMessage(chatId, "Электричество день:");
+                }
+                case 4 -> {
+                    st.ed   = Double.parseDouble(txt);
+                    st.step = 5;
+                    sendMessage(chatId, "Электричество ночь:");
+                }
+                case 5 -> {
+                    st.en = Double.parseDouble(txt);
+                    submitUC.submit(st.apt, st.hw, st.cw, st.ht, st.ed, st.en);
+                    sendMessage(chatId, "✅ Показания сохранены.");
+                    userStateMap.remove(chatId);
+                    sendMainMenu(chatId);
+                }
             }
-            case 1 -> {
-                st.hw = Double.parseDouble(txt);
-                st.step = 2;
-                sendMessage(chatId, "Холодная вода:");
-            }
-            case 2 -> {
-                st.cw = Double.parseDouble(txt);
-                st.step = 3;
-                sendMessage(chatId, "Теплоэнергия:");
-            }
-            case 3 -> {
-                st.ht = Double.parseDouble(txt);
-                st.step = 4;
-                sendMessage(chatId, "Электричество день:");
-            }
-            case 4 -> {
-                st.ed = Double.parseDouble(txt);
-                st.step = 5;
-                sendMessage(chatId, "Электричество ночь:");
-            }
-            case 5 -> {
-                st.en = Double.parseDouble(txt);
-                submitUC.submit(st.apt, st.hw, st.cw, st.ht, st.ed, st.en);
-                sendMessage(chatId, "✅ Показания сохранены.");
-                userState.remove(chatId);
-                sendMainMenu(chatId);
-            }
+        } catch (NumberFormatException ex) {
+            sendMessage(chatId, "Неверный формат числа. Попробуйте ещё раз.");
         }
     }
 
-    // — Update flow
-    private void onUpdate(UserState st, Long chatId, String txt) {
-        if (st.step == 0) {
-            st.apt   = Integer.parseInt(txt);
-            st.step  = 1;
-            // можно тут вызвать отдельную клавиатуру:
-            sendUpdateMeterTypeKeyboard(chatId);
-        }
-        else if (st.step == 1) {
-            st.field = switch (txt) {
-                case "🔥 горячая вода"       -> "curr_hotWater";
-                case "💧 холодная вода"      -> "curr_coldWater";
-                case "♨ теплоэнергия"        -> "curr_heating";
-                case "💡 эл-во день"         -> "curr_electricityDay";
-                case "🔌 эл-во ночь"         -> "curr_electricityNight";
-                default -> throw new IllegalArgumentException("Неизвестный тип счётчика: " + txt);
-            };
-            st.step  = 2;
-            sendMessage(chatId, "Введите новое значение:");
-        }
-        else {
-            double v = Double.parseDouble(txt);
-            updateUC.update(st.apt, st.field, v);
-            sendMessage(chatId, "✅ Значение обновлено.");
-            userState.remove(chatId);
-            sendMainMenu(chatId);
+    private void handleUpdate(UserState st, Long chatId, String txt) {
+        try {
+            switch (st.step) {
+                case 0 -> {
+                    // получаем номер квартиры
+                    st.apartmentNumber = Integer.parseInt(txt);
+                    // проверяем регистрацию
+                    if (!accountHolderRepository
+                            .existsByUserIdAndApartmentNumber(st.telegramUserId, st.apartmentNumber))
+                    {
+                        sendMessage(chatId,
+                                "❌ Вы не зарегистрированы на эту квартиру. Пройдите регистрацию.");
+                        userStateMap.remove(chatId);
+                        sendMainMenu(chatId);
+                        return;
+                    }
+                    // подгружаем предыдущие показания
+                    meterReadingRepository
+                            .createMeterReadingFromPrev(st.apartmentNumber)
+                            .ifPresentOrElse(prev -> {
+                                st.hotWater       = prev.getHotWater();
+                                st.coldWater      = prev.getColdWater();
+                                st.heating        = prev.getHeating();
+                                st.electricityDay   = prev.getElectricityDay();
+                                st.electricityNight = prev.getElectricityNight();
+                            }, () -> {
+                                st.hotWater = st.coldWater = st.heating
+                                        = st.electricityDay = st.electricityNight = 0.0;
+                            });
+                    st.step = 1;
+                    sendUpdateMeterTypeKeyboard(chatId);
+                }
+                case 1 -> {
+                    if (!txt.startsWith("update_meter:")) {
+                        sendMessage(chatId, "Выберите тип показания кнопкой:");
+                        sendUpdateMeterTypeKeyboard(chatId);
+                        return;
+                    }
+                    st.readingType = txt.substring("update_meter:".length());
+                    st.previousReading = switch (st.readingType) {
+                        case "🔥горячая вода" -> st.hotWater;
+                        case "💧холодная вода" -> st.coldWater;
+                        case "♨теплоэнергия" -> st.heating;
+                        case "💡электричество день" -> st.electricityDay;
+                        case "🔌электричество ночь" -> st.electricityNight;
+                        default -> 0.0;
+                    };
+                    st.step = 2;
+                    sendMessage(chatId,
+                            String.format("Предыдущее значение %s: %.2f\nВведите новое показание:",
+                                    st.readingType, st.previousReading));
+                }
+                case 2 -> {
+                    double v = Double.parseDouble(txt);
+                    if (v < st.previousReading) {
+                        sendMessage(chatId,
+                                "Новое значение не может быть меньше предыдущего (" +
+                                        st.previousReading + ")");
+                        return;
+                    }
+                    // обновляем конкретное поле
+                    switch (st.readingType) {
+                        case "🔥горячая вода"        -> meterReadingRepository.updateHotWater(st.apartmentNumber, v);
+                        case "💧холодная вода"       -> meterReadingRepository.updateColdWater(st.apartmentNumber, v);
+                        case "♨теплоэнергия"         -> meterReadingRepository.updateHeating(st.apartmentNumber, v);
+                        case "💡электричество день"  -> meterReadingRepository.updateElectricityDay(st.apartmentNumber, v);
+                        case "🔌электричество ночь" -> meterReadingRepository.updateElectricityNight(st.apartmentNumber, v);
+                    }
+                    sendMessage(chatId, "✅ Показание «" + st.readingType + "» обновлено.");
+                    st.step = 1;
+                    sendUpdateMeterTypeKeyboard(chatId);
+                }
+            }
+        } catch (NumberFormatException ex) {
+            sendMessage(chatId, "Неверный формат числа. Попробуйте ещё раз.");
         }
     }
 
-    // — Inline клавиатура для главного меню
     private void sendMainMenu(Long chatId) {
         InlineKeyboardMarkup kb = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = List.of(
@@ -201,31 +271,34 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         );
         kb.setKeyboard(rows);
 
-        SendMessage msg = SendMessage.builder()
+        executeSafely(SendMessage.builder()
                 .chatId(chatId.toString())
                 .text("Выберите действие:")
                 .replyMarkup(kb)
-                .build();
-        executeSafely(msg);
+                .build()
+        );
     }
 
-    // — Inline клавиатура для выбора типа счётчика
     private void sendUpdateMeterTypeKeyboard(Long chatId) {
         InlineKeyboardMarkup kb = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         for (String label : List.of(
-                "🔥 горячая вода", "💧 холодная вода",
-                "♨ теплоэнергия", "💡 эл-во день", "🔌 эл-во ночь")) {
-            rows.add(List.of(button(label, label)));
+                "🔥горячая вода",
+                "💧холодная вода",
+                "♨теплоэнергия",
+                "💡электричество день",
+                "🔌электричество ночь"
+        )) {
+            rows.add(List.of(button(label, "update_meter:" + label)));
         }
         kb.setKeyboard(rows);
 
-        SendMessage msg = SendMessage.builder()
+        executeSafely(SendMessage.builder()
                 .chatId(chatId.toString())
-                .text("Выберите показание для обновления:")
+                .text("Выберите тип показания:")
                 .replyMarkup(kb)
-                .build();
-        executeSafely(msg);
+                .build()
+        );
     }
 
     private InlineKeyboardButton button(String text, String data) {
@@ -236,11 +309,11 @@ public class MeterReadingBot extends TelegramLongPollingBot {
     }
 
     private void sendMessage(Long chatId, String text) {
-        SendMessage msg = SendMessage.builder()
+        executeSafely(SendMessage.builder()
                 .chatId(chatId.toString())
                 .text(text)
-                .build();
-        executeSafely(msg);
+                .build()
+        );
     }
 
     private void executeSafely(SendMessage msg) {
@@ -251,16 +324,29 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         }
     }
 
-    @Override public String getBotUsername() { return botUsername; }
-    @Override public String getBotToken()    { return botToken; }
+    @Override
+    public String getBotUsername() {
+        return botUsername;
+    }
+
+    @Override
+    public String getBotToken() {
+        return botToken;
+    }
 
     private static class UserState {
         String proc;
-        int step;
-        int apt;
-        double hw, cw, ht, ed, en;
+        int    step;
+        long   telegramUserId;
+        // для регистрации
         String apartmentInput;
-        long telegramUserId;
-        String field;
+        // для submit
+        int    apt;
+        double hw, cw, ht, ed, en;
+        // для update
+        int    apartmentNumber;
+        String readingType;
+        double hotWater, coldWater, heating, electricityDay, electricityNight;
+        double previousReading;
     }
 }

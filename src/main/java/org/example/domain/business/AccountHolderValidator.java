@@ -8,8 +8,6 @@ public class AccountHolderValidator {
     public void validate(String aptInput, String accInput) {
         int a = parse(aptInput, MIN_APT, MAX_APT, "номера квартиры");
         int c = parse(accInput, MIN_ACC, MAX_ACC, "номера лицевого счета");
-        // просто чтобы избежать warning unused
-        a++; c++;
     }
 
     private int parse(String in, int min, int max, String field) {

@@ -14,13 +14,11 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 @Repository
-public class JdbcMeterReadingRepository
-        implements MeterReadingRepositoryPort {
+public class JdbcMeterReadingRepository implements MeterReadingRepositoryPort {
+    private final JdbcTemplate jdbcTemplate;
 
-    private final JdbcTemplate jdbc;
-
-    public JdbcMeterReadingRepository(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public JdbcMeterReadingRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -29,7 +27,7 @@ public class JdbcMeterReadingRepository
                 + "(apartmentNumber, curr_hotWater, curr_coldWater, curr_heating, "
                 + "curr_electricityDay, curr_electricityNight) VALUES (?,?,?,?,?,?)";
         try {
-            jdbc.update(sql,
+            jdbcTemplate.update(sql,
                     r.getApartmentNumber(),
                     r.getHotWater(),
                     r.getColdWater(),
@@ -56,7 +54,7 @@ public class JdbcMeterReadingRepository
     """;
 
         try {
-            MeterReading mr = jdbc.queryForObject(
+            MeterReading mr = jdbcTemplate.queryForObject(
                     sql,
                     new Object[]{apartmentNumber},
                     (rs, rowNum) -> {
@@ -87,7 +85,7 @@ public class JdbcMeterReadingRepository
     @Override
     public void updateField(int apt, String field, double v) {
         String sql = "UPDATE meters SET " + field + " = ? WHERE apartmentNumber = ?";
-        jdbc.update(sql, v, apt);
+        jdbcTemplate.update(sql, v, apt);
     }
 
     @Override
@@ -100,8 +98,52 @@ public class JdbcMeterReadingRepository
                         + "prev_electricityNight = curr_electricityNight, "
                         + "curr_hotWater = 0, curr_coldWater = 0, curr_heating = 0, "
                         + "curr_electricityDay = 0, curr_electricityNight = 0";
-        jdbc.update(updateSql);
+        jdbcTemplate.update(updateSql);
     }
+
+
+    @Override
+    public Optional<MeterReading> createMeterReadingFromPrev(int apartmentNumber) {
+        String sql = """
+            SELECT prev_hotWater, prev_coldWater, prev_heating,
+                   prev_electricityDay, prev_electricityNight
+            FROM meters WHERE apartmentNumber = ?
+        """;
+        try {
+            MeterReading mr = jdbcTemplate.queryForObject(sql, new Object[]{apartmentNumber}, (rs, rowNum) -> {
+                double hw = rs.getDouble("prev_hotWater");
+                double cw = rs.getDouble("prev_coldWater");
+                double ht = rs.getDouble("prev_heating");
+                double ed = rs.getDouble("prev_electricityDay");
+                double en = rs.getDouble("prev_electricityNight");
+                // используем наш фабричный метод
+                return MeterReading.of(LocalDate.now(),
+                        apartmentNumber,
+                        hw, cw, ht, ed, en);
+            });
+            return Optional.ofNullable(mr);
+        } catch (EmptyResultDataAccessException ex) {
+            System.out.println("Запись по apartmentNumber " + apartmentNumber + " не найдена.");
+            return Optional.empty();
+        }
+    }
+
+    @Override public void updateHotWater(int apt, double v) {
+        jdbcTemplate.update("UPDATE meters SET curr_hotWater = ? WHERE apartmentNumber = ?", v, apt);
+    }
+    @Override public void updateColdWater(int apt, double v) {
+        jdbcTemplate.update("UPDATE meters SET curr_coldWater = ? WHERE apartmentNumber = ?", v, apt);
+    }
+    @Override public void updateHeating(int apt, double v) {
+        jdbcTemplate.update("UPDATE meters SET curr_heating = ? WHERE apartmentNumber = ?", v, apt);
+    }
+    @Override public void updateElectricityDay(int apt, double v) {
+        jdbcTemplate.update("UPDATE meters SET curr_electricityDay = ? WHERE apartmentNumber = ?", v, apt);
+    }
+    @Override public void updateElectricityNight(int apt, double v) {
+        jdbcTemplate.update("UPDATE meters SET curr_electricityNight = ? WHERE apartmentNumber = ?", v, apt);
+    }
+
 
     @Scheduled(cron = "0 0 0 1 * ?")
     public void scheduledUpdatePrevReadings() {

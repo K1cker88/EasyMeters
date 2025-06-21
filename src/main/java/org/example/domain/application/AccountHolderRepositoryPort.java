@@ -4,5 +4,5 @@ import org.example.domain.model.AccountHolder;
 
 public interface AccountHolderRepositoryPort {
     void save(AccountHolder holder);
-    boolean existsByUserIdAndApartmentNumber(long userId, int apartmentNumber);
+    boolean existsByUserIdAndApartmentNumber(long telegramUserId, int apt);
 }

@@ -36,7 +36,6 @@ public class JdbcAccountHolderRepository
         }
     }
 
-    @Override
     public boolean existsByUserIdAndApartmentNumber(long userId, int apartmentNumber) {
         String sql = "SELECT COUNT(*) FROM users WHERE Id = ? AND apartmentNumber = ?";
         Integer cnt = jdbc.queryForObject(sql, Integer.class, userId, apartmentNumber);
