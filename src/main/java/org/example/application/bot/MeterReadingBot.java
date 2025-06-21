@@ -80,6 +80,12 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         long tgId    = cq.getFrom().getId();
         String data  = cq.getData();
 
+        if ("submit_readings_disabled".equals(data)) {
+            sendMessage(chatId, "Вы уже передали показания за этот месяц. " +
+                    "Изменить их можно через «Изменить показания».");
+            return;
+        }
+
         switch (data) {
             case "register" ->
                     startRegistration(chatId, tgId);
@@ -145,27 +151,43 @@ public class MeterReadingBot extends TelegramLongPollingBot {
         try {
             switch (st.step) {
                 case 0 -> {
-                    st.apt  = Integer.parseInt(txt);
+                    st.apt = Integer.parseInt(txt);
+                    if (!accountHolderRepository.existsByUserIdAndApartmentNumber(st.telegramUserId, st.apt)) {
+                        sendMessage(chatId, "❌ Не зарегистрированы на эту квартиру.");
+                        userStateMap.remove(chatId);
+                        sendMainMenu(chatId);
+                        return;
+                    }
+                    if (meterReadingRepository.hasUnsubmittedReadings(st.telegramUserId)) {
+                        sendMessage(chatId,
+                                "ℹ️ Вы уже передали показания за этот месяц.\n" +
+                                        "Изменить можно через «Изменить показания».");
+                        userStateMap.remove(chatId);
+                        sendMainMenu(chatId);
+                        return;
+                    }
+                    // всё ок, спрашиваем горячую воду
                     st.step = 1;
                     sendMessage(chatId, "Горячая вода (тек.):");
                 }
+
                 case 1 -> {
-                    st.hw   = Double.parseDouble(txt);
+                    st.hw = Double.parseDouble(txt);
                     st.step = 2;
                     sendMessage(chatId, "Холодная вода:");
                 }
                 case 2 -> {
-                    st.cw   = Double.parseDouble(txt);
+                    st.cw = Double.parseDouble(txt);
                     st.step = 3;
                     sendMessage(chatId, "Теплоэнергия:");
                 }
                 case 3 -> {
-                    st.ht   = Double.parseDouble(txt);
+                    st.ht = Double.parseDouble(txt);
                     st.step = 4;
                     sendMessage(chatId, "Электричество день:");
                 }
                 case 4 -> {
-                    st.ed   = Double.parseDouble(txt);
+                    st.ed = Double.parseDouble(txt);
                     st.step = 5;
                     sendMessage(chatId, "Электричество ночь:");
                 }
@@ -261,15 +283,23 @@ public class MeterReadingBot extends TelegramLongPollingBot {
     }
 
     private void sendMainMenu(Long chatId) {
+        long userId = chatId; // в приватном чате ChatId == TelegramUserId
+        boolean already = meterReadingRepository.hasUnsubmittedReadings(userId);
+
         InlineKeyboardMarkup kb = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = List.of(
+        List<InlineKeyboardButton> line1 = List.of(button("📝 Регистрация", "register"));
+        InlineKeyboardButton submitBtn = already
+                ? button("🏠 Передать показания", "submit_readings_disabled")
+                : button("🏠 Передать показания", "submit_readings");
+        InlineKeyboardButton updateBtn = button("✏️ Изменить показания", "update_readings");
+
+        kb.setKeyboard(List.of(
                 List.of(button("📝 Регистрация", "register")),
                 List.of(
                         button("🏠 Передать показания", "submit_readings"),
-                        button("✏️ Изменить показания", "update_readings")
+                        button("✏️ Изменить показания",  "update_readings")
                 )
-        );
-        kb.setKeyboard(rows);
+        ));
 
         executeSafely(SendMessage.builder()
                 .chatId(chatId.toString())

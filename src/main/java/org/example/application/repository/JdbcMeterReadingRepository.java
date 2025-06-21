@@ -144,7 +144,23 @@ public class JdbcMeterReadingRepository implements MeterReadingRepositoryPort {
         jdbcTemplate.update("UPDATE meters SET curr_electricityNight = ? WHERE apartmentNumber = ?", v, apt);
     }
 
-
+    @Override
+    public boolean hasUnsubmittedReadings(long userId) {
+        var sql = """
+            SELECT COUNT(*) 
+              FROM users u
+              JOIN meters m
+                ON u.apartmentNumber = m.apartmentNumber
+             WHERE u.Id = ?
+               AND (m.curr_hotWater      <> 0
+                 OR m.curr_coldWater     <> 0
+                 OR m.curr_heating       <> 0
+                 OR m.curr_electricityDay <> 0
+                 OR m.curr_electricityNight <> 0)
+            """;
+        Integer cnt = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return cnt != null && cnt > 0;
+    }
     @Scheduled(cron = "0 0 0 1 * ?")
     public void scheduledUpdatePrevReadings() {
         resetMonthly();
