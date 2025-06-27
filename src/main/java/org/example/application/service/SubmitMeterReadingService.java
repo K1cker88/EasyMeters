@@ -21,25 +21,12 @@ public class SubmitMeterReadingService
     }
 
     @Override
-    public MeterReading submit(int apartmentNumber,
-                               double hotWater,
-                               double coldWater,
-                               double heating,
-                               double dayElect,
-                               double nightElect) {
+    public MeterReading submit(int apartmentNumber, double hotWater, double coldWater, double heating, double dayElect, double nightElect) {
         LocalDate today = LocalDate.now();
         validator.validateDate(today);
         MeterReading prev = repo.findPrevious(apartmentNumber)
                 .orElse(MeterReading.of(today, apartmentNumber, 0,0,0,0,0));
-        MeterReading current = MeterReading.of(
-                today,
-                apartmentNumber,
-                hotWater,
-                coldWater,
-                heating,
-                dayElect,
-                nightElect
-        );
+        MeterReading current = MeterReading.of(today, apartmentNumber, hotWater, coldWater, heating, dayElect, nightElect);
         repo.save(current);
         return current;
     }

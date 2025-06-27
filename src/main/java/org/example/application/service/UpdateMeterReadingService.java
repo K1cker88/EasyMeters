@@ -16,10 +16,7 @@ public class UpdateMeterReadingService
     }
 
     @Override
-    public void update(int apartmentNumber,
-                       String meterType,
-                       double newValue) {
-        // meterType должен совпадать с именем столбца, например "curr_hotWater"
-        repo.updateField(apartmentNumber, meterType, newValue);
+    public void update(int apartmentNumber, String meterType, double newValue) {
+       repo.updateField(apartmentNumber, meterType, newValue);
     }
 }

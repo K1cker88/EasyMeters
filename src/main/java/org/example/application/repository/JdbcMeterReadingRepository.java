@@ -6,7 +6,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 
@@ -27,14 +26,7 @@ public class JdbcMeterReadingRepository implements MeterReadingRepositoryPort {
                 + "(apartmentNumber, curr_hotWater, curr_coldWater, curr_heating, "
                 + "curr_electricityDay, curr_electricityNight) VALUES (?,?,?,?,?,?)";
         try {
-            jdbcTemplate.update(sql,
-                    r.getApartmentNumber(),
-                    r.getHotWater(),
-                    r.getColdWater(),
-                    r.getHeating(),
-                    r.getElectricityDay(),
-                    r.getElectricityNight()
-            );
+            jdbcTemplate.update(sql, r.getApartmentNumber(), r.getHotWater(), r.getColdWater(), r.getHeating(), r.getElectricityDay(), r.getElectricityNight());
             System.out.println("✅ Показания сохранены");
         } catch (DuplicateKeyException ex) {
             System.err.println("❌ Дубликат записи");
@@ -65,15 +57,7 @@ public class JdbcMeterReadingRepository implements MeterReadingRepositoryPort {
                         double prevNight = rs.getDouble("prev_electricityNight");
 
                         // Передаем сначала дату, затем apartmentNumber, потом все счётчики
-                        return MeterReading.of(
-                                LocalDate.now(),
-                                apartmentNumber,
-                                prevHot,
-                                prevCold,
-                                prevHeat,
-                                prevDay,
-                                prevNight
-                        );
+                        return MeterReading.of(LocalDate.now(), apartmentNumber, prevHot, prevCold, prevHeat, prevDay, prevNight);
                     }
             );
             return Optional.of(mr);
@@ -117,9 +101,7 @@ public class JdbcMeterReadingRepository implements MeterReadingRepositoryPort {
                 double ed = rs.getDouble("prev_electricityDay");
                 double en = rs.getDouble("prev_electricityNight");
                 // используем наш фабричный метод
-                return MeterReading.of(LocalDate.now(),
-                        apartmentNumber,
-                        hw, cw, ht, ed, en);
+                return MeterReading.of(LocalDate.now(), apartmentNumber, hw, cw, ht, ed, en);
             });
             return Optional.ofNullable(mr);
         } catch (EmptyResultDataAccessException ex) {

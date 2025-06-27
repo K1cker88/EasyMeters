@@ -12,37 +12,47 @@ public class MeterReading {
     private final double electricityDay;
     private final double electricityNight;
 
-    private MeterReading(LocalDate date,
-                         int apartmentNumber,
-                         double hotWater,
-                         double coldWater,
-                         double heating,
-                         double electricityDay,
-                         double electricityNight) {
-        this.date               = date;
-        this.apartmentNumber    = apartmentNumber;
-        this.hotWater           = hotWater;
-        this.coldWater          = coldWater;
-        this.heating            = heating;
-        this.electricityDay     = electricityDay;
-        this.electricityNight   = electricityNight;
+    private MeterReading(LocalDate date, int apartmentNumber, double hotWater, double coldWater, double heating, double electricityDay, double electricityNight) {
+        this.date = date;
+        this.apartmentNumber = apartmentNumber;
+        this.hotWater = hotWater;
+        this.coldWater = coldWater;
+        this.heating = heating;
+        this.electricityDay = electricityDay;
+        this.electricityNight = electricityNight;
     }
 
-    /** Создать новое чтение с сегодняшней датой */
-    public static MeterReading of(LocalDate date,
-                                  int apt,
-                                  double hw, double cw,
-                                  double ht, double ed, double en) {
+    public static MeterReading of(LocalDate date, int apt, double hw, double cw, double ht, double ed, double en) {
         return new MeterReading(date, apt, hw, cw, ht, ed, en);
     }
 
-    public LocalDate getDate()           { return date; }
-    public int getApartmentNumber()      { return apartmentNumber; }
-    public double getHotWater()          { return hotWater; }
-    public double getColdWater()         { return coldWater; }
-    public double getHeating()           { return heating; }
-    public double getElectricityDay()    { return electricityDay; }
-    public double getElectricityNight()  { return electricityNight; }
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public int getApartmentNumber() {
+        return apartmentNumber;
+    }
+
+    public double getHotWater() {
+        return hotWater;
+    }
+
+    public double getColdWater() {
+        return coldWater;
+    }
+
+    public double getHeating() {
+        return heating;
+    }
+
+    public double getElectricityDay() {
+        return electricityDay;
+    }
+
+    public double getElectricityNight() {
+        return electricityNight;
+    }
 
     @Override public boolean equals(Object o) {
         if (this == o) return true;

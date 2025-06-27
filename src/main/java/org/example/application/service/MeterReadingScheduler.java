@@ -12,10 +12,9 @@ public class MeterReadingScheduler {
     private final MeterReadingRepositoryPort meterRepo;
 
     @Autowired
-    public MeterReadingScheduler(MonthlyReportEmailService emailService,
-                                 MeterReadingRepositoryPort meterRepo) {
+    public MeterReadingScheduler(MonthlyReportEmailService emailService, MeterReadingRepositoryPort meterRepo) {
         this.emailService = emailService;
-        this.meterRepo    = meterRepo;
+        this.meterRepo = meterRepo;
     }
 
     /** Ежемесячная рассылка отчёта 10:00 23-го числа */

@@ -22,12 +22,10 @@ public class MonthlyReportEmailService {
     private final String recipientEmail;
 
     @Autowired
-    public MonthlyReportEmailService(ExcelExportService excelExportService,
-                                     JavaMailSender mailSender,
-                                     @Value("${report.email.recipient}") String recipientEmail) {
+    public MonthlyReportEmailService(ExcelExportService excelExportService,JavaMailSender mailSender,@Value("${report.email.recipient}") String recipientEmail) {
         this.excelExportService = excelExportService;
-        this.mailSender         = mailSender;
-        this.recipientEmail     = recipientEmail;
+        this.mailSender = mailSender;
+        this.recipientEmail = recipientEmail;
     }
 
     public void sendMonthlyReport() {

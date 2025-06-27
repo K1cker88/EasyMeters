@@ -118,8 +118,8 @@ public class MeterReadingBot extends TelegramLongPollingBot {
             return;
         }
         UserState st = new UserState();
-        st.proc           = proc;
-        st.step           = 0;
+        st.proc = proc;
+        st.step = 0;
         st.telegramUserId = telegramUserId;
         userStateMap.put(chatId, st);
         sendMessage(chatId, prompt);
@@ -127,8 +127,8 @@ public class MeterReadingBot extends TelegramLongPollingBot {
 
     private void startRegistration(Long chatId, long telegramUserId) {
         UserState st = new UserState();
-        st.proc           = "reg";
-        st.step           = 0;
+        st.proc = "reg";
+        st.step = 0;
         st.telegramUserId = telegramUserId;
         userStateMap.put(chatId, st);
         sendMessage(chatId, "Введите номер квартиры для регистрации:");

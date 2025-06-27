@@ -20,9 +20,7 @@ public class RegisterAccountHolderService
 
     @Override
     @Transactional
-    public AccountHolder register(String aptInput,
-                                  String accInput,
-                                  long telegramUserId) {
+    public AccountHolder register(String aptInput, String accInput, long telegramUserId) {
         validator.validate(aptInput, accInput);
         int apt = Integer.parseInt(aptInput);
         int acc = Integer.parseInt(accInput);
